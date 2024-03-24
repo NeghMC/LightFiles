@@ -1,0 +1,2 @@
+Install mingw
+Use VSCode

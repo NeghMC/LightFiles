@@ -1,0 +1,98 @@
+/**
+ * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
+ * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
+ * @cliArgs --board "/ti/boards/CC26X2R1_LAUNCHXL" --rtos "tirtos7" --product "simplelink_cc13xx_cc26xx_sdk@7.10.02.23"
+ * @versions {"tool":"1.16.2+3028"}
+ */
+
+/**
+ * Import the modules used in this configuration.
+ */
+const GPIO        = scripting.addModule("/ti/drivers/GPIO", {}, false);
+const GPIO5       = GPIO.addInstance();
+const NVS         = scripting.addModule("/ti/drivers/NVS");
+const NVS1        = NVS.addInstance();
+const Settings    = scripting.addModule("/ti/posix/tirtos/Settings");
+const BIOS        = scripting.addModule("/ti/sysbios/BIOS");
+const Event       = scripting.addModule("/ti/sysbios/knl/Event");
+const Idle        = scripting.addModule("/ti/sysbios/knl/Idle", {}, false);
+const Idle2       = Idle.addInstance();
+const Mailbox     = scripting.addModule("/ti/sysbios/knl/Mailbox");
+const Error       = scripting.addModule("/ti/sysbios/runtime/Error");
+const SysCallback = scripting.addModule("/ti/sysbios/runtime/SysCallback");
+const Timestamp   = scripting.addModule("/ti/sysbios/runtime/Timestamp");
+
+/**
+ * Write custom configuration values to the imported modules.
+ */
+GPIO5.$hardware = system.deviceData.board.components.LED_RED;
+GPIO5.$name     = "GPIO_LED";
+
+NVS1.$hardware           = system.deviceData.board.components.MX25R8035F;
+NVS1.$name               = "CONFIG_NVSEXTERNAL";
+NVS1.externalFlash.$name = "ti_drivers_nvs_NVSSPI25X0";
+
+const NVSSPI25XDevice                        = scripting.addModule("/ti/drivers/nvs/NVSSPI25XDevice", {}, false);
+const NVSSPI25XDevice1                       = NVSSPI25XDevice.addInstance({}, false);
+NVSSPI25XDevice1.$name                       = "CONFIG_NVS_SPI_0";
+NVS1.externalFlash.spiFlashDevice            = NVSSPI25XDevice1;
+NVSSPI25XDevice1.chipSelectPinInstance.$name = "CONFIG_GPIO_0";
+
+const SPI                          = scripting.addModule("/ti/drivers/SPI", {}, false);
+const SPI1                         = SPI.addInstance({}, false);
+SPI1.$name                         = "CONFIG_SPI_0";
+NVSSPI25XDevice1.sharedSpiInstance = SPI1;
+
+const CCFG              = scripting.addModule("/ti/devices/CCFG", {}, false);
+CCFG.ccfgTemplate.$name = "ti_devices_CCFG_CCFGCC26XXTemplate0";
+
+BIOS.assertsEnabled = false;
+BIOS.heapBaseAddr   = "__primary_heap_start__";
+BIOS.heapEndAddr    = "__primary_heap_end__";
+
+const Hwi           = scripting.addModule("/ti/sysbios/family/arm/m3/Hwi", {}, false);
+Hwi.enableException = false;
+
+const Clock      = scripting.addModule("/ti/sysbios/knl/Clock", {}, false);
+Clock.tickPeriod = 10;
+
+const Timer = scripting.addModule("/ti/sysbios/family/arm/cc26xx/Timer", {}, false);
+
+Idle2.$name   = "powerIdle";
+Idle2.idleFxn = "Power_idleFunc";
+
+const Semaphore            = scripting.addModule("/ti/sysbios/knl/Semaphore", {}, false);
+Semaphore.supportsPriority = false;
+
+const Swi         = scripting.addModule("/ti/sysbios/knl/Swi", {}, false);
+Swi.numPriorities = 6;
+
+const Task             = scripting.addModule("/ti/sysbios/knl/Task", {}, false);
+Task.checkStackFlag    = false;
+Task.defaultStackSize  = 512;
+Task.idleTaskStackSize = 512;
+Task.numPriorities     = 6;
+
+Error.policy       = "Error_SPIN";
+Error.printDetails = false;
+
+const System           = scripting.addModule("/ti/sysbios/runtime/System", {}, false);
+System.abortFxn        = "System_abortSpin";
+System.exitFxn         = "System_exitSpin";
+System.extendedFormats = "%f";
+System.supportModule   = "SysCallback";
+
+/**
+ * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
+ * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
+ * re-solve from scratch.
+ */
+GPIO5.gpioPin.$suggestSolution               = "boosterpack.39";
+NVSSPI25XDevice1.chipSelect.$suggestSolution = "boosterpack.38";
+SPI1.spi.$suggestSolution                    = "SSI0";
+SPI1.spi.sclkPin.$suggestSolution            = "boosterpack.7";
+SPI1.spi.pociPin.$suggestSolution            = "boosterpack.14";
+SPI1.spi.picoPin.$suggestSolution            = "boosterpack.15";
+SPI1.spi.dmaRxChannel.$suggestSolution       = "DMA_CH3";
+SPI1.spi.dmaTxChannel.$suggestSolution       = "DMA_CH4";
+Timer.rtc.$suggestSolution                   = "RTC0";
