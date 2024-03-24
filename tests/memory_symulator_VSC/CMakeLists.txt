@@ -1,6 +1,0 @@
-cmake_minimum_required(VERSION 3.6.0)
-project(lightfiles)
-set(TARGET_NAME "lightfilesTest")
-file(GLOB SOURCES "*.c" "*.h" "*.cpp")
-add_executable(${TARGET_NAME} ${SOURCES})
-install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION ${CMAKE_CURRENT_LIST_DIR})
