@@ -11,10 +11,10 @@ Block structure
     special keys
         0xffff - block free
 2B size
-*  content
 */
 
-#define LF_CONTENT_MAX_SIZE (sBlockSize - 4)
+#define LF_BLOCK_HEADER_SIZE (4)
+#define LF_CONTENT_MAX_SIZE (sBlockSize - LF_BLOCK_HEADER_SIZE)
 #define LF_BLOCK_NONE ((uint16_t)0xffff)
 #define LF_KEY_FREE (0xffff)
 #define LF_KEY_DELETED (0x0)
@@ -70,126 +70,183 @@ static lf_result_t findBlock(uint16_t *foundBlock, uint16_t key)
     return result;
 }
 
-static lf_result_t validate(uint16_t key, uint16_t contentLength)
-{
-    if(key == 0xffff)
-    {
-        return LF_RESULT_INVALID_KEY;
-    }
-    if(contentLength > LF_CONTENT_MAX_SIZE)
-    {
-        return LF_RESULT_TOO_BIG_CONTENT;
-    }
-    return LF_RESULT_SUCCESS;
-}
-
 lf_result_t lf_init(void)
 {
     sBlock = 0;
-    return lf_app_init(&sBlockCount, &sBlockSize);
-}
-
-lf_result_t lf_write(uint16_t key, void *content, uint16_t length)
-{
-    // validate args
-    lf_result_t result = validate(key, length);
+    lf_result_t result = lf_app_init(&sBlockCount, &sBlockSize);
     if(result != LF_RESULT_SUCCESS)
     {
         return result;
     }
-
-    uint16_t newBlock;
-
-#ifdef LF_CHECK_IF_EXISTS_BEFORE_CREATING
-    result = findBlock(&newBlock, key);
-    if(result != LF_RESULT_SUCCESS)
+    if(sBlockCount == 0xffff)
     {
-        return result;
+        return LF_RESULT_INVALID_CONFIG;
     }
-    if(newBlock != LF_BLOCK_NONE)
-    {
-        return LF_RESULT_ALREADY_EXISTS;
-    }
-#endif
-
-    // find new block
-    result = findBlock(&newBlock, LF_KEY_FREE);
-    if(result != LF_RESULT_SUCCESS)
-    {
-        return result;
-    }
-    if(newBlock == LF_BLOCK_NONE)
-    {
-        return LF_RESULT_OUT_OF_MEMORY;
-    }
-
-    // write header
-    uint8_t header[4];
-    *((uint16_t*)(header)) = key;
-    *((uint16_t*)(header+2)) = length;
-    result = lf_app_write(newBlock, 0, header, 4, 0);
-    if(result != LF_RESULT_SUCCESS)
-    {
-        return result;
-    }
-
-    // write data
-    result = lf_app_write(newBlock, 4, content, length, 1);
-
     return result;
 }
 
-lf_result_t lf_read(uint16_t key, void *content, uint16_t length)
+lf_result_t lf_exists(uint16_t key)
 {
-    // validate args
-    lf_result_t result = validate(key, length);
-    if(result != LF_RESULT_SUCCESS)
+    if(key == 0xffff)
     {
-        return result;
+        return LF_RESULT_INVALID_ARGS;
     }
 
-    // find block
     uint16_t block;
-    result = findBlock(&block, key);
+    lf_result_t result = findBlock(&block, key);
     if(result != LF_RESULT_SUCCESS)
     {
         return result;
     }
     if(block == LF_BLOCK_NONE)
     {
-        return LF_RESULT_NOT_EXISTS;
+        result = LF_RESULT_NOT_EXISTS;
     }
 
-    // check length
-    uint16_t currentDataLength;
-    result = lf_app_read(block,2, &currentDataLength, 2);
+    return result; 
+}
+
+lf_result_t lf_open(lf_file_cache *file, uint16_t key, lf_open_mode mode)
+{
+    if(key == 0xffff || file == NULL || mode == LF_MODE_NONE)
+    {
+        return LF_RESULT_INVALID_ARGS;
+    }
+
+    uint16_t newBlock;
+    lf_result_t result = findBlock(&newBlock, key);
     if(result != LF_RESULT_SUCCESS)
     {
         return result;
     }
-    if(currentDataLength < length)
+
+    uint16_t size = 0;
+
+    if(mode == LF_MODE_READ)
+    {
+        if(newBlock == LF_BLOCK_NONE)
+        {
+            return LF_RESULT_NOT_EXISTS;
+        }
+        // cache file size
+        result = lf_app_read(newBlock, 2, &size, 2);
+        if(result != LF_RESULT_SUCCESS)
+        {
+            return result;
+        }
+    }
+
+    if(mode == LF_MODE_WRITE)
+    {
+        if(newBlock != LF_BLOCK_NONE)
+        {
+            return LF_RESULT_ALREADY_EXISTS;
+        }
+        lf_result_t result = findBlock(&newBlock, LF_KEY_FREE);
+        if(result != LF_RESULT_SUCCESS)
+        {
+            return result;
+        }
+        if(newBlock == LF_BLOCK_NONE)
+        {
+            return LF_RESULT_OUT_OF_MEMORY;
+        }
+        // claim new block
+        result = lf_app_write(newBlock, 0, &key, 2, 1);
+        if(result != LF_RESULT_SUCCESS)
+        {
+            return result;
+        }
+    }
+    
+    file->block = newBlock;
+    file->cursor = LF_BLOCK_HEADER_SIZE;
+    file->key = key;
+    file->mode = mode;
+    file->size = size;
+
+    return result;
+}
+
+lf_result_t lf_write(lf_file_cache *file, void *content, uint16_t length)
+{
+    // validate args
+    if(file == NULL || file->mode == LF_MODE_READ)
+    {
+        return LF_RESULT_INVALID_ARGS;
+    }
+    if((file->cursor + length) > sBlockSize)
+    {
+        return LF_RESULT_TOO_BIG_CONTENT;
+    }
+
+    lf_result_t result = lf_app_write(file->block, file->cursor, content, length, 1);
+    if(result != LF_RESULT_SUCCESS)
+    {
+        return result;
+    }
+
+    file->cursor += length;
+    return result;
+}
+
+lf_result_t lf_close(lf_file_cache *file)
+{
+    if(file == NULL)
+    {
+        return LF_RESULT_INVALID_ARGS;
+    }
+
+    lf_result_t result = LF_RESULT_SUCCESS;
+    if(file->mode == LF_MODE_WRITE)
+    {
+        uint16_t size = file->cursor - LF_BLOCK_HEADER_SIZE;
+        result = lf_app_write(file->block, 2, &size, 2, 1);
+        if(result != LF_RESULT_SUCCESS)
+        {
+            return result;
+        }
+    }
+
+    file->mode = LF_MODE_NONE;
+    return result;
+}
+
+lf_result_t lf_read(lf_file_cache *file, void *content, uint16_t length)
+{
+    // validate args
+    if(file == NULL || file->mode == LF_MODE_WRITE)
+    {
+        return LF_RESULT_INVALID_ARGS;
+    }
+
+    if(length > (file->size - (file->cursor - LF_BLOCK_HEADER_SIZE)))
     {
         return LF_RESULT_TOO_MUCH_TO_READ;
     }
 
     // read data
-    result = lf_app_read(block, 4, content, length);
+    lf_result_t result = lf_app_read(file->block, file->cursor, content, length);
+    if(result != LF_RESULT_SUCCESS)
+    {
+        return result;
+    }
 
+    file->cursor += length;
     return result;
 }
 
 lf_result_t lf_delete(uint16_t key)
 {
     // validate args
-    lf_result_t result = validate(key, 0);
-    if(result != LF_RESULT_SUCCESS)
+    if(key == 0xffff)
     {
-        return result;
+        return LF_RESULT_INVALID_ARGS;
     }
 
     // find block
     uint16_t block;
-    result = findBlock(&block, key);
+    lf_result_t result = findBlock(&block, key);
     if(result != LF_RESULT_SUCCESS)
     {
         return result;

@@ -59,34 +59,79 @@ void *testThread(void *arg0)
 {
     GPIO_toggle(GPIO_LED);
 
+    // init the library
     lf_result_t result = lf_init();
     if(result != LF_RESULT_SUCCESS)
     {
         while(1);
     }
 
+    // prepare data
     uint8_t exampleDataOut[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     uint8_t exampleDataIn[sizeof(exampleDataOut)];
-    uint16_t id = 1;
+    uint16_t id = 0;
+    lf_file_cache file1, file2;
 
-    result = lf_write(id, exampleDataOut, sizeof(exampleDataOut));
+    // check if file already exists
+    result = lf_exists(id);
+    if(result == LF_RESULT_SUCCESS)
+    {
+        // delete the file
+        result = lf_delete(id);
+        if(result != LF_RESULT_SUCCESS)
+        {
+            while(1);
+        }
+    }
+    else if(result != LF_RESULT_NOT_EXISTS)
+    {
+        while(1);
+    }
+
+    // open to write
+    result = lf_open(&file1, id, LF_MODE_WRITE);
     if(result != LF_RESULT_SUCCESS)
     {
         while(1);
     }
-    result = lf_read(id, exampleDataIn, sizeof(exampleDataIn));
+
+    // write
+    result = lf_write(&file1, exampleDataOut, sizeof(exampleDataOut));
     if(result != LF_RESULT_SUCCESS)
     {
         while(1);
     }
 
+    // close
+    result = lf_close(&file1);
+    if(result != LF_RESULT_SUCCESS)
+    {
+        while(1);
+    }
+
+    // open to read
+    result = lf_open(&file2, id, LF_MODE_READ);
+    if(result != LF_RESULT_SUCCESS)
+    {
+        while(1);
+    }
+
+    // read
+    result = lf_read(&file2, exampleDataIn, sizeof(exampleDataIn));
+    if(result != LF_RESULT_SUCCESS)
+    {
+        while(1);
+    }
+
+    // close
+    result = lf_close(&file2);
+    if(result != LF_RESULT_SUCCESS)
+    {
+        while(1);
+    }
+
+    // verify
     if(memcmp(exampleDataOut, exampleDataIn, sizeof(exampleDataIn)) != 0)
-    {
-        while(1);
-    }
-
-    result = lf_delete(id);
-    if(result != LF_RESULT_SUCCESS)
     {
         while(1);
     }
