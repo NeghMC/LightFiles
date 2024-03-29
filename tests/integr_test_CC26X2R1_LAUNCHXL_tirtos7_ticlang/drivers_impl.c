@@ -46,7 +46,7 @@ lf_result_t lf_app_init(uint16_t *blockCount, uint16_t *blockSize)
     *blockSize = regionAttrs.sectorSize;
     *blockCount = regionAttrs.regionSize/regionAttrs.sectorSize;
 
-    //NVS_erase(nvsHandle, 0, regionAttrs.regionSize);
+    NVS_erase(nvsHandle, 0, regionAttrs.regionSize);
 
     return LF_RESULT_SUCCESS;
 }
