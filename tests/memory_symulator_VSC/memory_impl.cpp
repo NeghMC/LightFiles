@@ -18,14 +18,14 @@ void memory_config(uint8_t *ptr, uint16_t blockCount, uint16_t blockSize)
 
 // ---------------- driver implementation ---------------------
 
-lf_result_t lf_app_init(uint16_t *blockCount, uint16_t *blockSize)
+lf_result_t lf_app_init(lf_memory_config *config)
 {
-    *blockCount = memoryConfig.blockCount;
-    *blockSize = memoryConfig.blockSize;
+    config->blockCount = memoryConfig.blockCount;
+    config->blockSize = memoryConfig.blockSize;
     return LF_RESULT_SUCCESS;
 }
 
-lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, uint16_t length, uint8_t flush)
+lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, unsigned int length, uint8_t flush)
 {
     if(block >= memoryConfig.blockCount) return LF_RESULT_FAILED;
     uint8_t *p = memoryConfig.ptr + (block*memoryConfig.blockSize) + offset;
@@ -36,7 +36,7 @@ lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, uint16_t
     return LF_RESULT_SUCCESS;
 }
 
-lf_result_t lf_app_read(uint16_t block, uint16_t offset, void *buffer, uint16_t length)
+lf_result_t lf_app_read(uint16_t block, uint16_t offset, void *buffer, unsigned int length)
 {
     if(block >= memoryConfig.blockCount) return LF_RESULT_FAILED;
     memcpy(buffer, memoryConfig.ptr + (block*memoryConfig.blockSize) + offset, length);

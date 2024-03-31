@@ -23,7 +23,7 @@ static NVS_Handle nvsHandle;
 static NVS_Attrs regionAttrs;
 static NVS_Params nvsParams;
 
-lf_result_t lf_app_init(uint16_t *blockCount, uint16_t *blockSize)
+lf_result_t lf_app_init(lf_memory_config *config)
 {
     NVS_init();
 
@@ -43,15 +43,15 @@ lf_result_t lf_app_init(uint16_t *blockCount, uint16_t *blockSize)
     NVS_getAttrs(nvsHandle, &regionAttrs);
 
     // set LF parameters
-    *blockSize = regionAttrs.sectorSize;
-    *blockCount = regionAttrs.regionSize/regionAttrs.sectorSize;
+    config->blockCount = regionAttrs.regionSize/regionAttrs.sectorSize;
+    config->blockSize = regionAttrs.sectorSize;
 
     NVS_erase(nvsHandle, 0, regionAttrs.regionSize);
 
     return LF_RESULT_SUCCESS;
 }
 
-lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, uint16_t length, uint8_t flush)
+lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, size_t length, uint8_t flush)
 {
     uint16_t ret = NVS_write(nvsHandle, block*regionAttrs.sectorSize + offset, buffer, length, 0);
     if(ret == NVS_STATUS_SUCCESS)
@@ -64,7 +64,7 @@ lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, uint16_t
     }
 }
 
-lf_result_t lf_app_read(uint16_t block, uint16_t offset, void *buffer, uint16_t length)
+lf_result_t lf_app_read(uint16_t block, uint16_t offset, void *buffer, size_t length)
 {
     uint16_t ret = NVS_read(nvsHandle, block*regionAttrs.sectorSize + offset, buffer, length);
     if(ret == NVS_STATUS_SUCCESS)

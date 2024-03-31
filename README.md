@@ -21,17 +21,20 @@ Each block contains a header that consists of file key, next block number, and d
 
 Developer needs to implement functions: 
 ```
-lf_result_t lf_app_init(uint16_t *blockCount, uint16_t *blockSize);
-lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, uint16_t length, uint8_t flush);
-lf_result_t lf_app_read(uint16_t block, uint16_t offset, void *buffer, uint16_t length);
+lf_result_t lf_app_init(lf_memory_config *config);
+    // shall update the configuration
+lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, size_t length, uint8_t flush);
+    // shall write 'length' number of bytes from 'buffer' to the block number 'block' starting on 'offset' byte
+lf_result_t lf_app_read(uint16_t block, uint16_t offset, void *buffer, size_t length);
+    // shall read 'length' number of bytes to 'buffer' from the block number 'block' starting on 'offset' byte
 lf_result_t lf_app_delete(uint16_t block);
+    // shall erase block number 'block'
 ```
 
 For more details please search through the source files.
 
 ### Limitations
 
-* Maximum amount of data that can be written at once cannot be bigger that block size. In that case it needs to be divided in smaller transfers.
 * No build-in buffering - data is immediately written to the memory - more smaller data transfers.
 * When deleting an entry the block is instantly formatted, which can take some time.
 
@@ -52,11 +55,13 @@ Example implementation can be seen in `tests/integr_test_CC26X2R1_LAUNCHXL_tirto
 - [x] Add possibility to append content while writing to a file
 - [ ] Add garbage collection mechanism
 - [ ] Add proper unit tests
-- [x] Add advanced memory test (either hardware or software)
+- [x] Add advanced memory test (either simulated or emulated)
     - [ ] Update to test the entire memory
-- [ ] Optimize block searching function
+- [x] Optimize block searching function
 - [x] Remove limit of file size
 - [x] Add checking if file exists
+- [ ] Allow blocks to merge
+- [ ] Add optional caching mechanism
 
 <!-- LICENSE -->
 ## License

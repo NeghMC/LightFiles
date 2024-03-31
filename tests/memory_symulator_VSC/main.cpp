@@ -1,263 +1,211 @@
-#include <cstdio>
+#include <iostream>
 #include "light_files.h"
 #include "memory_impl.hpp"
 #include "light_files_config.h"
 #include <cstring>
 
-// helper macro
-#define TABLE_SIZE(tab) (sizeof(tab)/sizeof(tab[0]))
-
-//#define WRITE_SIZE (LF_MEMORY_BLOCK_SIZE/2)
-
-// test function prototype
-typedef uint8_t (*testFunction)(void);
-
-// ------------------------------------------------------------------------------------------------------
-
-// This test writes an entry in the memory in a size of one block and checks if
-// it is correctly written.
-uint8_t singleWriteTest()
+int test()
 {
     lf_result_t result = LF_RESULT_SUCCESS;
 
     // prepare memory
-
     const uint16_t blockSize = 20;
-    const uint16_t blockCount = 5;
+    const uint16_t blockCount = 10;
     const uint16_t memorySize = blockSize * blockCount;
     uint8_t memoryIn[memorySize];
     memset(memoryIn, 0xff, memorySize);
     memory_config(memoryIn, blockCount, blockSize);
-    
-    // prepare input buffer
-
-    const int dataSize = 10;
-    uint8_t bufferIn[dataSize];
-    for(int i = 0; i < dataSize; ++i)
-    {
-        bufferIn[i] = 10 + i;
-    }
-
-    // perform the test
-    uint16_t key = 0;
-
-    result = lf_init();
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_create(key);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_write(bufferIn, dataSize);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_save();
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    // verify
-
-    uint8_t expectedMemory[memorySize];
-    memset(expectedMemory, 0xff, memorySize);
-    uint8_t header[] = {0x80, 0xff, 0xff, 10, 0};
-    memcpy(expectedMemory, header, sizeof(header));
-    memcpy(expectedMemory + sizeof(header), bufferIn, sizeof(bufferIn));
-
-    if(memcmp(memoryIn, expectedMemory, memorySize) != 0)
-    {
-        return 1;
-    }
-    
-    return 0;
-}
-
-// This test writes an entry in the memory twice and checks if
-// it is correctly written.
-uint8_t doubleWriteTest()
-{
-    lf_result_t result = LF_RESULT_SUCCESS;
-
-    // prepare memory
-
-    const uint16_t blockSize = 20;
-    const uint16_t blockCount = 5;
-    const uint16_t memorySize = blockSize * blockCount;
-    uint8_t memoryIn[memorySize];
-    memset(memoryIn, 0xff, memorySize);
-    memory_config(memoryIn, blockCount, blockSize);
-    
-    // prepare input buffer
-
-    const int dataSize = 10;
-    uint8_t bufferIn[dataSize];
-    for(int i = 0; i < dataSize; ++i)
-    {
-        bufferIn[i] = 10 + i;
-    }
-
-    // perform the test
-    uint16_t key = 0;
-
-    result = lf_init();
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_create(key);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_write(bufferIn, dataSize);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_write(bufferIn, dataSize);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_save();
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    // verify
-
-    uint8_t expectedMemory[memorySize];
-    memset(expectedMemory, 0xff, memorySize);
-    uint8_t header0[] = {0x80, 1, 0, 15, 0};
-    uint8_t header1[] = {0, 0xff, 0xff, 5, 0};
-    memcpy(expectedMemory, header0, sizeof(header0));
-    memcpy(expectedMemory + sizeof(header0), bufferIn, 10);
-    memcpy(expectedMemory + sizeof(header0) + sizeof(bufferIn), bufferIn, 5);
-    memcpy(expectedMemory + blockSize, header1, sizeof(header1));
-    memcpy(expectedMemory + blockSize + sizeof(header1), bufferIn + 5, 5);
-
-    if(memcmp(memoryIn, expectedMemory, memorySize) != 0)
-    {
-        return 1;
-    }
-    
-    return 0;
-}
-
-// this function reads an entry from the memory, and validates its integrity
-uint8_t singleReadTest()
-{
-    lf_result_t result = LF_RESULT_SUCCESS;
-
-    // prepare memory
-
-    const uint16_t blockSize = 20;
-    const uint16_t blockCount = 5;
-    const uint16_t memorySize = blockSize * blockCount;
-    uint8_t memoryIn[memorySize];
-    memset(memoryIn, 0xff, memorySize);
-    memory_config(memoryIn, blockCount, blockSize);
-
-    uint8_t content[] = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-    uint8_t header[] = {0x80, 0xff, 0xff, 10, 0};
-    memcpy(memoryIn, header, sizeof(header));
-    memcpy(memoryIn + sizeof(header), content, sizeof(content));
-
-    // perform the test
-    
-    uint16_t key = 0;
-    uint8_t buffer[sizeof(content)];
-
-    result = lf_init();
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_open(key);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_read(buffer, sizeof(buffer));
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    if(memcmp(buffer, content, sizeof(buffer)))
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-// this function reads an entry from the memory twice, and validates its integrity
-uint8_t doubleReadTest()
-{
-    lf_result_t result = LF_RESULT_SUCCESS;
-
-    // prepare memory
-
-    const uint16_t blockSize = 20;
-    const uint16_t blockCount = 5;
-    const uint16_t memorySize = blockSize * blockCount;
-    uint8_t memoryIn[memorySize];
-    memset(memoryIn, 0xff, memorySize);
-    memory_config(memoryIn, blockCount, blockSize);
-
-    uint8_t content[] = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-    uint8_t header0[] = {0x80, 1, 0, 15, 0};
-    uint8_t header1[] = {0, 0xff, 0xff, 5, 0};
-    memcpy(memoryIn, header0, sizeof(header0));
-    memcpy(memoryIn + sizeof(header0), content, sizeof(content));
-    memcpy(memoryIn + sizeof(header0) + sizeof(content), content, 5);
-    memcpy(memoryIn + blockSize, header1, sizeof(header1));
-    memcpy(memoryIn + blockSize + sizeof(header1), content + 5, 5);
-
-    // perform the test
-    
-    uint16_t key = 0;
-    uint8_t buffer1[sizeof(content)];
-    uint8_t buffer2[sizeof(content)];
-
-    result = lf_init();
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_open(key);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_read(buffer1, sizeof(buffer1));
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_read(buffer2, sizeof(buffer2));
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    if(memcmp(buffer1, content, sizeof(buffer1)) || memcmp(buffer2, content, sizeof(buffer2)))
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-// delete test
-uint8_t deleteTest()
-{
-    lf_result_t result = LF_RESULT_SUCCESS;
-
-    // prepare memory
-
-    const uint16_t blockSize = 20;
-    const uint16_t blockCount = 5;
-    const uint16_t memorySize = blockSize * blockCount;
-    uint8_t memoryIn[memorySize];
-    memset(memoryIn, 0xff, memorySize);
-    memory_config(memoryIn, blockCount, blockSize);
-
-    uint8_t header0[] = {0x80, 2, 0, 7, 0, 1, 2, 3, 4, 5, 6, 7};
-    uint8_t header2[] = {0, 4, 0, 3, 0, 8, 7, 6};
-    uint8_t header4[] = {0, 0xff, 0xff, 4, 0, 8, 0, 6, 0};
-    memcpy(memoryIn, header0, sizeof(header0));
-    memcpy(memoryIn + 2*blockSize, header2, sizeof(header2));
-    memcpy(memoryIn + 4*blockSize, header4, sizeof(header4));
 
     uint8_t expectedMemory[memorySize];
     memset(expectedMemory, 0xff, memorySize);
 
-    // perform the test
-    
-    uint16_t key = 0;
-
-    result = lf_init();
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    result = lf_delete(key);
-    if(result != LF_RESULT_SUCCESS){return 1;}
-
-    if(memcmp(memoryIn, expectedMemory, memorySize))
+    // ----------------------------- WRITE TESTS -------------------------------------
     {
-        return 1;
+        // ---- small file test ----
+        {
+            const int dataSize = 10;
+            uint8_t bufferIn[dataSize];
+            for(int i = 0; i < dataSize; ++i)
+            {
+                bufferIn[i] = 10 + i;
+            }
+
+            // perform the test
+            uint8_t key = 0;
+
+            result = lf_init();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_create(key);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_write(bufferIn, dataSize);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_save();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            // verify
+
+            uint8_t header[] = {0x80, 0xff, 0xff, 10, 0};
+            memcpy(expectedMemory, header, sizeof(header));
+            memcpy(expectedMemory + sizeof(header), bufferIn, sizeof(bufferIn));
+
+            if(memcmp(memoryIn, expectedMemory, memorySize) != 0)
+            {
+                return __LINE__;
+            }
+        }
+
+        // ---- big file test ----
+        {
+            const int dataSize = 12;
+            uint8_t bufferIn[dataSize];
+            for(int i = 0; i < dataSize; ++i)
+            {
+                bufferIn[i] = 10 + i;
+            }
+
+            // perform the test
+            uint8_t key = 1;
+
+            result = lf_init();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_create(key);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_write(bufferIn, dataSize); // problem - when asked to find a new block it finds the same block
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_write(bufferIn, dataSize);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_write(bufferIn, dataSize);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_save();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            // verify
+            uint8_t header0[] = {0x80 | key, 2, 0, 15, 0};
+            uint8_t header1[] = {key, 3, 0, 15, 0};
+            uint8_t header2[] = {key, 0xff, 0xff, 6, 0};
+            memcpy(expectedMemory + blockSize, header0, sizeof(header0));
+            memcpy(expectedMemory + blockSize + sizeof(header0), bufferIn, 12);
+            memcpy(expectedMemory + blockSize + sizeof(header0) + 12, bufferIn, 3);
+            memcpy(expectedMemory + 2 * blockSize, header1, sizeof(header1));
+            memcpy(expectedMemory + 2 * blockSize + sizeof(header1), bufferIn + 3, 9);
+            memcpy(expectedMemory + 2 * blockSize + sizeof(header1) + 9, bufferIn, 6);
+            memcpy(expectedMemory + 3 * blockSize, header2, sizeof(header2));
+            memcpy(expectedMemory + 3 * blockSize + sizeof(header2), bufferIn + 6, 6);
+
+            if(memcmp(memoryIn, expectedMemory, memorySize) != 0)
+            {
+                return __LINE__;
+            }
+        }
+    }
+    
+    // ----------------------------- READ TESTS -------------------------------------
+    {
+        // ---- small file test ----
+        {
+            uint8_t key = 9;
+
+            uint8_t content[] = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+            uint8_t header[] = {0x80 | key, 0xff, 0xff, 10, 0};
+            memcpy(memoryIn + 4 * blockSize, header, sizeof(header));
+            memcpy(memoryIn + 4 * blockSize + sizeof(header), content, sizeof(content));
+            memcpy(expectedMemory + 4 * blockSize, header, sizeof(header));
+            memcpy(expectedMemory + 4 * blockSize + sizeof(header), content, sizeof(content));
+
+            // perform the test
+
+            uint8_t buffer[sizeof(content)];
+
+            result = lf_init();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_open(key);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_read(buffer, sizeof(buffer));
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            if(memcmp(buffer, content, sizeof(buffer)))
+            {
+                return __LINE__;
+            }
+        }
+
+        // ---- large file size ----
+        {
+            uint8_t key = 10;
+            uint8_t content[] = {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+            uint8_t header0[] = {0x80 | key, 6, 0, 15, 0};
+            uint8_t header1[] = {key, 7, 0, 15, 0};
+            uint8_t header2[] = {key, 0xff, 0xff, 6, 0};
+            memcpy(memoryIn + 5 * blockSize, header0, sizeof(header0));
+            memcpy(memoryIn + 5 * blockSize + sizeof(header0), content, sizeof(content));
+            memcpy(memoryIn + 5 * blockSize + sizeof(header0) + sizeof(content), content, 3);
+            memcpy(memoryIn + 6 * blockSize, header1, sizeof(header1));
+            memcpy(memoryIn + 6 * blockSize + sizeof(header1), content + 3, 9);
+            memcpy(memoryIn + 6 * blockSize + sizeof(header1) + 9, content, 6);
+            memcpy(memoryIn + 7 * blockSize, header2, sizeof(header2));
+            memcpy(memoryIn + 7 * blockSize + sizeof(header2), content + 6, 6);
+            memcpy(expectedMemory + 5 * blockSize, header0, sizeof(header0));
+            memcpy(expectedMemory + 5 * blockSize + sizeof(header0), content, sizeof(content));
+            memcpy(expectedMemory + 5 * blockSize + sizeof(header0) + sizeof(content), content, 3);
+            memcpy(expectedMemory + 6 * blockSize, header1, sizeof(header1));
+            memcpy(expectedMemory + 6 * blockSize + sizeof(header1), content + 3, 9);
+            memcpy(expectedMemory + 6 * blockSize + sizeof(header1) + 9, content, 6);
+            memcpy(expectedMemory + 7 * blockSize, header2, sizeof(header2));
+            memcpy(expectedMemory + 7 * blockSize + sizeof(header2), content + 6, 6);
+
+            // perform the test
+            uint8_t buffer1[sizeof(content)];
+            uint8_t buffer2[sizeof(content)];
+            uint8_t buffer3[sizeof(content)];
+
+            result = lf_init();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_open(key);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_read(buffer1, sizeof(buffer1));
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_read(buffer2, sizeof(buffer2));
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_read(buffer3, sizeof(buffer3));
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            if(memcmp(buffer1, content, sizeof(buffer1)) || memcmp(buffer2, content, sizeof(buffer2)) || memcmp(buffer3, content, sizeof(buffer3)))
+            {
+                return __LINE__;
+            }
+        }
+    }   
+
+    //  ---- delete test ----
+    {
+        uint16_t key = 1;
+
+        result = lf_init();
+        if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+        result = lf_delete(key);
+        if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+        memset(expectedMemory + blockSize, 0xff, 3 * blockSize);
+
+        if(memcmp(memoryIn, expectedMemory, memorySize))
+        {
+            return __LINE__;
+        }
     }
 
     return 0;
@@ -579,37 +527,19 @@ uint8_t deleteTest()
 //     return 0;
 // }
 
+using namespace std;
+
 int main()
 {
-    testFunction tests[] =
+    int result = test();
+    if(result == 0)
     {
-        singleWriteTest,
-        doubleWriteTest,
-        singleReadTest,
-        doubleReadTest,
-        deleteTest,
-        // multipleWritesAndReadsTest,
-        // alreadyExistsErrorTest,
-        // notExistsErrorTest,
-        // outOfMemoryErrorTest,
-        // toBigContentErrorTest,
-        // invalidKeyErrorTest,
-        // toMuchToReadErrorTest
-    };
-
-    for(int i = 0; i < TABLE_SIZE(tests); ++i)
-    {
-        int result = tests[i]();
-
-        if(result)
-        {
-            printf("test %d failed\n\r", i);
-            break;
-        }
-        else
-        {
-            printf("test %d passed\n\r", i);
-        }
+        cout << "All test competed!" << endl;
     }
+    else
+    {
+        cout << "Test failed at line " << result << "." << endl;
+    }
+
     return 0;
 }
