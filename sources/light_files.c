@@ -338,8 +338,11 @@ lf_result_t lf_read(void *content, size_t length)
         }
 
         size_t toReadSize = (length > dataLeftSize) ? dataLeftSize : length;
-        result = lf_app_read(sCurrentBlock, LF_BLOCK_HEADER_SIZE + sCursor, (uint8_t*)content + contentOffset, toReadSize);
-        LF_ASSERT(result != LF_RESULT_SUCCESS, result);
+        if(content != NULL)
+        {
+            result = lf_app_read(sCurrentBlock, LF_BLOCK_HEADER_SIZE + sCursor, (uint8_t*)content + contentOffset, toReadSize);
+            LF_ASSERT(result != LF_RESULT_SUCCESS, result);
+        }
         sCursor += toReadSize;
 
         // if thats all

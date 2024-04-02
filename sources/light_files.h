@@ -39,7 +39,7 @@ lf_result_t lf_save(void); // ends writing mode
 
 // read
 lf_result_t lf_open(uint8_t key); // starts reading mode
-lf_result_t lf_read(void *content, size_t length); // reads data
+lf_result_t lf_read(void *content, size_t length); // reads data, or skips it if 'content' is null
 lf_result_t lf_close(void); // ends reading mode
 
 // TO IMPLEMENT!!! Shall return LF_RESULT_SUCCESS or LF_RESULT_FAILED

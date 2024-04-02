@@ -1,13 +1,12 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This repository contains a simple file-system written in C. It is intended for embedded systems containing MCUs with limited resources. The file-system structure does not contain folders, all the files can be found globally with their "key" (an unsigned integer 0 to 126).  
+This repository contains a simple file-system written in C. It is intended for embedded systems containing MCUs with limited resources. The file-system structure does not contain folders, all the files can be found globally using their unique "key" (an unsigned integer 0 to 126).  
 
-Functional requirements:
+Functional description:
 * Light - insignificant size comparing to the entire program size
-* Understandable - bases on logical and easy to understand concept
-* Simple - no need for complex configuration
-* Embedded - only the MCU has direct access to the memory
+* Simple - bases on logical and easy to understand concept
+* Flexible - almost no need for configuration, short implementation time
 
 ### Hardware requirements
 
@@ -15,14 +14,14 @@ A system should contain at least one accessible flash memory, where each byte of
 
 ### Key concept
 
-Library treats flash memory as a list of blocks. When a file is created the first free block is chosen from the list. That block becomes a leading block, which means that it is recognized when the application looks for a specific file. Then the data is written to that block. If the data is bigger than the block, a new free block is chosen, and information about that block is being saved to the current block. That second block is a following block and it wont be recognized as an separate file. The process continues until the file is saved, in that case the last piece of information is saved to the current block and file can not be written anymore. When reading the file it needs to be opened first. This way an information about the first block is cached. Then data is read in the similar matter as it is written following the chain of the blocks. After data is read the file is closed.
+Library treats flash memory as a list of blocks. When a file is created the first empty block is chosen from the list. That block becomes a leading block, which means that it is recognized when the application looks for a specific file. Then the data is written to that block. If the data is bigger than the block, a new free block is chosen, and information about that new block is being saved to the current block. That second block is a following block and it wont be recognized as an separate file. The process continues until the file is saved. In that case the last piece of information is saved to the current block and file can not be written anymore. When reading the file it needs to be opened first. This way an information about the first block is cached. Then data is read in the similar matter as it is written following the chain of associated blocks. After data is read the file is closed.
 
-Each block contains a header that consists of file key, next block number, and data size in the current block (5 bytes in total). If the block is an leading block it has a MSB set in its key.
+Each block contains a header that consists of file key (also called ID), next block number, and data size in the current block (5 bytes in total). If the block is an leading block it has a MSB set in its key field.
 
 Developer needs to implement functions: 
 ```
 lf_result_t lf_app_init(lf_memory_config *config);
-    // shall update the configuration
+    // shall update the configuration and initialize the memory
 lf_result_t lf_app_write(uint16_t block, uint16_t offset, void *buffer, size_t length, uint8_t flush);
     // shall write 'length' number of bytes from 'buffer' to the block number 'block' starting on 'offset' byte
 lf_result_t lf_app_read(uint16_t block, uint16_t offset, void *buffer, size_t length);
@@ -31,11 +30,12 @@ lf_result_t lf_app_delete(uint16_t block);
     // shall erase block number 'block'
 ```
 
-For more details please search through the source files.
+For more details please search through the source files in `source` folder.
 
 ### Limitations
 
-* No build-in buffering - data is immediately written to the memory - more smaller data transfers.
+The application is memory usage optimized, which means that data transfer speed is relatively low. That is because:
+* Library does not support buffering or block caching. That causes multiple data transfers to be executed for each block.
 * When deleting an entry the block is instantly formatted, which can take some time.
 
 <!-- GETTING STARTED -->
@@ -46,7 +46,7 @@ TBD
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Example implementation can be seen in `tests/integr_test_CC26X2R1_LAUNCHXL_tirtos7_ticlang`.
+Example implementation can be seen in `tests` folder. The most practical example resides in `tests/emulator_arduino_mega` folder.
 
 <!-- ROADMAP -->
 ## Roadmap
@@ -62,6 +62,7 @@ Example implementation can be seen in `tests/integr_test_CC26X2R1_LAUNCHXL_tirto
 - [x] Add checking if file exists
 - [ ] Allow blocks to merge
 - [ ] Add optional caching mechanism
+- [x] Add cursor movement
 
 <!-- LICENSE -->
 ## License

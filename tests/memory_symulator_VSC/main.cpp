@@ -133,6 +133,9 @@ int test()
             result = lf_read(buffer, sizeof(buffer));
             if(result != LF_RESULT_SUCCESS){return __LINE__;}
 
+            result = lf_close();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
             if(memcmp(buffer, content, sizeof(buffer)))
             {
                 return __LINE__;
@@ -183,7 +186,34 @@ int test()
             result = lf_read(buffer3, sizeof(buffer3));
             if(result != LF_RESULT_SUCCESS){return __LINE__;}
 
+            result = lf_close();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
             if(memcmp(buffer1, content, sizeof(buffer1)) || memcmp(buffer2, content, sizeof(buffer2)) || memcmp(buffer3, content, sizeof(buffer3)))
+            {
+                return __LINE__;
+            }
+
+            // -- skip file test --
+            uint8_t smallBuffer1[sizeof(content)/2];
+            uint8_t smallBuffer2[sizeof(content)/2];
+
+            result = lf_open(key);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_read(smallBuffer1, sizeof(content)/2);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_read(NULL, sizeof(content));
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_read(smallBuffer2, sizeof(content)/2);
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            result = lf_close();
+            if(result != LF_RESULT_SUCCESS){return __LINE__;}
+
+            if(memcmp(smallBuffer1, content, sizeof(smallBuffer1)) || memcmp(smallBuffer2, content + sizeof(content)/2, sizeof(smallBuffer2)))
             {
                 return __LINE__;
             }
