@@ -1,7 +1,6 @@
 #include <iostream>
 #include "light_files.h"
 #include "memory_impl.hpp"
-#include "light_files_config.h"
 #include <cstring>
 
 int test()

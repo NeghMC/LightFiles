@@ -3,7 +3,7 @@
 
 This repository contains a simple file-system written in C. It is intended for embedded systems containing MCUs with limited resources. The file-system structure does not contain folders, all the files can be found globally using their unique "key" (an unsigned integer 0 to 126).  
 
-Functional description:
+Features:
 * Light - insignificant size comparing to the entire program size
 * Simple - bases on logical and easy to understand concept
 * Flexible - almost no need for configuration, short implementation time
@@ -18,6 +18,15 @@ Library treats flash memory as a list of blocks. When a file is created the firs
 
 Each block contains a header that consists of file key (also called ID), next block number, and data size in the current block (5 bytes in total). If the block is an leading block it has a MSB set in its key field.
 
+### Limitations
+
+The application is memory usage optimized, which means that data transfer speed is relatively low. That is because:
+* Library does not support buffering or block caching. That causes multiple data transfers to be executed for each block.
+* When deleting an entry the block is instantly formatted, which can take some time.
+
+<!-- GETTING STARTED -->
+## Getting Started
+
 Developer needs to implement functions: 
 ```
 lf_result_t lf_app_init(lf_memory_config *config);
@@ -31,17 +40,6 @@ lf_result_t lf_app_delete(uint16_t block);
 ```
 
 For more details please search through the source files in `source` folder.
-
-### Limitations
-
-The application is memory usage optimized, which means that data transfer speed is relatively low. That is because:
-* Library does not support buffering or block caching. That causes multiple data transfers to be executed for each block.
-* When deleting an entry the block is instantly formatted, which can take some time.
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-TBD
 
 <!-- USAGE EXAMPLES -->
 ## Usage

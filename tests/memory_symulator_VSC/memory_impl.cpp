@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <cstring>
 #include "memory_impl.hpp"
-#include "light_files_config.h"
 
 static struct {
     uint8_t *ptr;
